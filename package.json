@@ -1,0 +1,33 @@
+{
+  "name": "hkia_rally",
+  "version": "1.0.0",
+  "description": "尋寶挑戰百萬賞 - Game API & Dashboard",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "build:css": "tailwindcss -i ./src/styles/input.css -o ./public/css/output.css --minify",
+    "watch:css": "tailwindcss -i ./src/styles/input.css -o ./public/css/output.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "ejs": "^6.0.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "express-ejs-layouts": "^2.5.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.13.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.4",
+    "nodemon": "^3.1.9",
+    "tailwindcss": "^4.1.4"
+  }
+}

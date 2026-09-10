@@ -1,0 +1,62 @@
+<section class="space-y-6">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h2 class="font-serif text-3xl text-amber-200">遊戲紀錄</h2>
+      <p class="mt-1 text-sm text-slate-400">以 gamedate（GMT+8 日期字串）篩選區間</p>
+    </div>
+    <a
+      class="rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-4 py-2 text-emerald-200 hover:bg-emerald-500/25"
+      href="/dashboard/logs/export.xlsx?from=<%= encodeURIComponent(from) %>&to=<%= encodeURIComponent(to) %>"
+    >下載 XLSX</a>
+  </div>
+
+  <form method="get" action="/dashboard/logs" class="flex flex-wrap items-end gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+    <label class="text-sm">
+      <span class="text-slate-400">由</span>
+      <input class="mt-1 block rounded-lg border border-white/10 bg-slate-900 px-3 py-2" type="date" name="from" value="<%= from %>" required />
+    </label>
+    <label class="text-sm">
+      <span class="text-slate-400">至</span>
+      <input class="mt-1 block rounded-lg border border-white/10 bg-slate-900 px-3 py-2" type="date" name="to" value="<%= to %>" required />
+    </label>
+    <button class="rounded-lg bg-sky-500 px-4 py-2 text-slate-950 hover:bg-sky-400" type="submit">查詢</button>
+  </form>
+
+  <div class="overflow-x-auto rounded-2xl border border-white/10">
+    <table class="min-w-full text-left text-sm">
+      <thead class="bg-white/5 text-slate-300">
+        <tr>
+          <th class="px-3 py-2">ref_id</th>
+          <th class="px-3 py-2">device_id</th>
+          <th class="px-3 py-2">gamedate</th>
+          <th class="px-3 py-2">start</th>
+          <th class="px-3 py-2">end</th>
+          <th class="px-3 py-2">visual</th>
+          <th class="px-3 py-2">correct</th>
+          <th class="px-3 py-2">incorrect</th>
+          <th class="px-3 py-2">completion</th>
+          <th class="px-3 py-2">建立(HKT)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!logs.length) { %>
+        <tr><td class="px-3 py-6 text-slate-500" colspan="10">此區間沒有紀錄</td></tr>
+        <% } %>
+        <% logs.forEach(function (log) { %>
+        <tr class="border-t border-white/5 hover:bg-white/[0.03]">
+          <td class="px-3 py-2 font-mono text-xs"><%= log.ref_id %></td>
+          <td class="px-3 py-2"><%= log.device_id %></td>
+          <td class="px-3 py-2"><%= log.gamedate %></td>
+          <td class="px-3 py-2"><%= log.start_time %></td>
+          <td class="px-3 py-2"><%= log.end_time %></td>
+          <td class="px-3 py-2"><%= log.game_visual_no %></td>
+          <td class="px-3 py-2 text-emerald-300"><%= log.correct %></td>
+          <td class="px-3 py-2 text-rose-300"><%= log.incorrect %></td>
+          <td class="px-3 py-2"><%= log.completion_time %>s</td>
+          <td class="px-3 py-2 text-slate-400"><%= log.createdAtHkt %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>

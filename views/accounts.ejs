@@ -1,0 +1,55 @@
+<section class="space-y-6">
+  <div>
+    <h2 class="font-serif text-3xl text-amber-200">帳號管理</h2>
+    <p class="mt-1 text-sm text-slate-400">admin 可開帳號；staff 只能查紀錄與下載 xlsx。<%= passwordHint %></p>
+  </div>
+
+  <% if (error) { %>
+  <p class="rounded bg-rose-500/20 px-3 py-2 text-sm text-rose-200"><%= error %></p>
+  <% } %>
+  <% if (success) { %>
+  <p class="rounded bg-emerald-500/20 px-3 py-2 text-sm text-emerald-200"><%= success %></p>
+  <% } %>
+
+  <form method="post" action="/dashboard/accounts" class="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:grid-cols-4">
+    <label class="text-sm">
+      <span class="text-slate-400">username</span>
+      <input class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2" name="username" required />
+    </label>
+    <label class="text-sm">
+      <span class="text-slate-400">password</span>
+      <input class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2" type="password" name="password" required />
+    </label>
+    <label class="text-sm">
+      <span class="text-slate-400">role</span>
+      <select class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2" name="role">
+        <option value="staff">staff</option>
+        <option value="admin">admin</option>
+      </select>
+    </label>
+    <div class="flex items-end">
+      <button class="w-full rounded-lg bg-sky-500 px-4 py-2 text-slate-950 hover:bg-sky-400" type="submit">建立帳號</button>
+    </div>
+  </form>
+
+  <div class="overflow-x-auto rounded-2xl border border-white/10">
+    <table class="min-w-full text-left text-sm">
+      <thead class="bg-white/5 text-slate-300">
+        <tr>
+          <th class="px-3 py-2">username</th>
+          <th class="px-3 py-2">role</th>
+          <th class="px-3 py-2">active</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% accounts.forEach(function (a) { %>
+        <tr class="border-t border-white/5">
+          <td class="px-3 py-2"><%= a.username %></td>
+          <td class="px-3 py-2"><%= a.role %></td>
+          <td class="px-3 py-2"><%= a.active ? '是' : '否' %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
