@@ -18,6 +18,9 @@ const dashboardConfig = require('./routes/dashboard/config');
 function createApp() {
   const app = express();
 
+  // Cloudflare Flexible + Apache reverse proxy
+  app.set('trust proxy', 1);
+
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, '..', 'views'));
   app.use(expressLayouts);
