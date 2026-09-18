@@ -25,7 +25,7 @@
   <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h3 class="text-lg text-amber-100">區間統計</h3>
+        <h3 class="text-lg text-amber-100">趨勢圖</h3>
         <p class="text-sm text-slate-400"><%= from %> 至 <%= to %>（GMT+8）</p>
       </div>
       <p class="text-sm text-slate-400">平均遊戲時間 <span class="font-mono text-base text-rose-200"><%= chart.avgLabel %></span></p>
@@ -100,40 +100,51 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 <script>
   const rangeStats = <%- chartJson %>;
+  const lineStyle = {
+    tension: 0.35,
+    borderWidth: 2,
+    pointRadius: 4,
+    pointHoverRadius: 5,
+    pointBackgroundColor: '#0f172a',
+    pointBorderWidth: 2,
+    fill: false,
+  };
   new Chart(document.getElementById('rangeChart'), {
+    type: 'line',
     data: {
       labels: rangeStats.labels,
       datasets: [
         {
-          type: 'bar',
+          ...lineStyle,
           label: '遊玩人數',
           data: rangeStats.playersByDay,
-          backgroundColor: 'rgba(56, 189, 248, 0.8)',
+          borderColor: '#38bdf8',
+          pointBorderColor: '#38bdf8',
           yAxisID: 'y',
         },
         {
-          type: 'bar',
+          ...lineStyle,
           label: '總遊玩次數',
           data: rangeStats.playsByDay,
-          backgroundColor: 'rgba(251, 191, 36, 0.8)',
+          borderColor: '#fbbf24',
+          pointBorderColor: '#fbbf24',
           yAxisID: 'y',
         },
         {
-          type: 'bar',
+          ...lineStyle,
           label: 'Visual 次數',
           data: rangeStats.visualsByDay,
-          backgroundColor: 'rgba(52, 211, 153, 0.8)',
+          borderColor: '#34d399',
+          pointBorderColor: '#34d399',
           yAxisID: 'y',
         },
         {
-          type: 'line',
+          ...lineStyle,
           label: '平均遊戲時間',
           data: rangeStats.avgByDay,
           borderColor: '#fb7185',
-          backgroundColor: '#fb7185',
+          pointBorderColor: '#fb7185',
           yAxisID: 'y1',
-          tension: 0.25,
-          pointRadius: 3,
         },
       ],
     },
@@ -142,7 +153,10 @@
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { color: '#cbd5e1' } },
+        legend: {
+          position: 'bottom',
+          labels: { color: '#cbd5e1', usePointStyle: true, pointStyle: 'circle' },
+        },
         tooltip: {
           callbacks: {
             label(item) {
@@ -157,12 +171,12 @@
       scales: {
         x: {
           ticks: { color: '#94a3b8' },
-          grid: { color: 'rgba(255,255,255,0.06)' },
+          grid: { color: 'rgba(255,255,255,0.12)', borderDash: [4, 4] },
         },
         y: {
           beginAtZero: true,
           ticks: { color: '#94a3b8', precision: 0 },
-          grid: { color: 'rgba(255,255,255,0.06)' },
+          grid: { color: 'rgba(255,255,255,0.12)', borderDash: [4, 4] },
           title: { display: true, text: '次數', color: '#94a3b8' },
         },
         y1: {
