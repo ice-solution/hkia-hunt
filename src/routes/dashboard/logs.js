@@ -13,6 +13,12 @@ const router = express.Router();
 
 router.use(requireStaffSession);
 
+function defaultLogRange() {
+  const to = formatHktDate();
+  const from = formatHktDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+  return { from, to };
+}
+
 function buildQuery(from, to) {
   const filter = {};
   if (from && to) {
@@ -84,9 +90,9 @@ function buildRangeChart(logs, from, to) {
 }
 
 router.get('/', async (req, res) => {
-  const today = formatHktDate();
-  const from = req.query.from || today;
-  const to = req.query.to || today;
+  const range = defaultLogRange();
+  const from = req.query.from || range.from;
+  const to = req.query.to || range.to;
   const filter = buildQuery(from, to);
 
   const logs = await GameLog.find(filter).sort({ gamedate: -1, start_time: -1 }).lean();
@@ -108,9 +114,9 @@ router.get('/', async (req, res) => {
 
 router.get('/export.xlsx', async (req, res) => {
   try {
-    const today = formatHktDate();
-    const from = req.query.from || today;
-    const to = req.query.to || today;
+    const range = defaultLogRange();
+    const from = req.query.from || range.from;
+    const to = req.query.to || range.to;
     const filter = buildQuery(from, to);
     const logs = await GameLog.find(filter).sort({ gamedate: 1, start_time: 1 }).lean();
 
