@@ -20,6 +20,10 @@ router.get('/', requireStaffSession, async (req, res) => {
     todayCount,
     deviceCount,
     totalLogs,
+    chartJson: JSON.stringify({
+      labels: ['今日遊玩次數', '啟用 Device', '累計 Game Log'],
+      values: [todayCount, deviceCount, totalLogs],
+    }).replace(/</g, '\\u003c'),
   });
 });
 

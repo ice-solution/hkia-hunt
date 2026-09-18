@@ -17,5 +17,47 @@
       <p class="mt-2 text-3xl font-semibold text-emerald-300"><%= totalLogs %></p>
     </div>
   </div>
+  <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <h3 class="text-lg text-amber-100">總覽圖表</h3>
+    <div class="mt-3" style="height: 280px;">
+      <canvas id="overviewChart"></canvas>
+    </div>
+  </div>
   <a class="inline-flex rounded-lg bg-sky-500 px-4 py-2 text-slate-950 hover:bg-sky-400" href="/dashboard/logs">查看遊戲紀錄</a>
 </section>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script>
+  const overview = <%- chartJson %>;
+  new Chart(document.getElementById('overviewChart'), {
+    type: 'bar',
+    data: {
+      labels: overview.labels,
+      datasets: [
+        {
+          label: '數量',
+          data: overview.values,
+          backgroundColor: ['rgba(56, 189, 248, 0.85)', 'rgba(251, 191, 36, 0.85)', 'rgba(52, 211, 153, 0.85)'],
+          borderRadius: 8,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#cbd5e1' },
+          grid: { display: false },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#94a3b8', precision: 0 },
+          grid: { color: 'rgba(255,255,255,0.06)' },
+        },
+      },
+    },
+  });
+</script>

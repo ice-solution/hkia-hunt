@@ -2,7 +2,12 @@ const express = require('express');
 const ExcelJS = require('exceljs');
 const GameLog = require('../../models/GameLog');
 const { requireStaffSession } = require('../../middleware/auth');
-const { formatHktDate, formatHktDateTime } = require('../../utils/timezone');
+const {
+  formatHktDate,
+  formatHktDateTime,
+  formatCompletionTime,
+  eachHktDate,
+} = require('../../utils/timezone');
 
 const router = express.Router();
 
@@ -18,6 +23,66 @@ function buildQuery(from, to) {
   return filter;
 }
 
+function buildRangeChart(logs, from, to) {
+  const byDate = new Map();
+  for (const date of eachHktDate(from, to)) {
+    byDate.set(date, { devices: new Set(), visuals: new Set(), plays: 0, timeSum: 0 });
+  }
+
+  const allDevices = new Set();
+  const allVisuals = new Set();
+  let timeSum = 0;
+
+  for (const log of logs) {
+    allDevices.add(log.device_id);
+    allVisuals.add(String(log.game_visual_no));
+    const seconds = Number(log.completion_time) || 0;
+    timeSum += seconds;
+
+    if (!byDate.has(log.gamedate)) {
+      byDate.set(log.gamedate, { devices: new Set(), visuals: new Set(), plays: 0, timeSum: 0 });
+    }
+    const day = byDate.get(log.gamedate);
+    day.devices.add(log.device_id);
+    day.visuals.add(String(log.game_visual_no));
+    day.plays += 1;
+    day.timeSum += seconds;
+  }
+
+  const labels = [...byDate.keys()].sort();
+  const playersByDay = [];
+  const playsByDay = [];
+  const visualsByDay = [];
+  const avgByDay = [];
+  const avgLabels = [];
+
+  for (const date of labels) {
+    const day = byDate.get(date);
+    const avg = day.plays ? day.timeSum / day.plays : 0;
+    playersByDay.push(day.devices.size);
+    playsByDay.push(day.plays);
+    visualsByDay.push(day.visuals.size);
+    avgByDay.push(Number(avg.toFixed(3)));
+    avgLabels.push(formatCompletionTime(avg));
+  }
+
+  const plays = logs.length;
+  return {
+    from,
+    to,
+    players: allDevices.size,
+    plays,
+    visualCount: allVisuals.size,
+    avgLabel: formatCompletionTime(plays ? timeSum / plays : 0),
+    labels,
+    playersByDay,
+    playsByDay,
+    visualsByDay,
+    avgByDay,
+    avgLabels,
+  };
+}
+
 router.get('/', async (req, res) => {
   const today = formatHktDate();
   const from = req.query.from || today;
@@ -25,14 +90,18 @@ router.get('/', async (req, res) => {
   const filter = buildQuery(from, to);
 
   const logs = await GameLog.find(filter).sort({ gamedate: -1, start_time: -1 }).lean();
+  const chart = buildRangeChart(logs, from, to);
 
   return res.render('logs', {
     title: '遊戲紀錄',
     from,
     to,
+    chart,
+    chartJson: JSON.stringify(chart).replace(/</g, '\\u003c'),
     logs: logs.map((log) => ({
       ...log,
       createdAtHkt: formatHktDateTime(log.createdAt),
+      completionLabel: formatCompletionTime(log.completion_time),
     })),
   });
 });
@@ -72,7 +141,7 @@ router.get('/export.xlsx', async (req, res) => {
         game_visual_no: log.game_visual_no,
         correct: log.correct,
         incorrect: log.incorrect,
-        completion_time: log.completion_time,
+        completion_time: formatCompletionTime(log.completion_time),
         created_at_hkt: formatHktDateTime(log.createdAt),
       });
     });

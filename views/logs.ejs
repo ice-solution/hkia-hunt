@@ -22,6 +22,43 @@
     <button class="rounded-lg bg-sky-500 px-4 py-2 text-slate-950 hover:bg-sky-400" type="submit">查詢</button>
   </form>
 
+  <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h3 class="text-lg text-amber-100">區間統計</h3>
+        <p class="text-sm text-slate-400"><%= from %> 至 <%= to %>（GMT+8）</p>
+      </div>
+      <p class="text-sm text-slate-400">平均遊戲時間 <span class="font-mono text-base text-rose-200"><%= chart.avgLabel %></span></p>
+    </div>
+    <div class="mt-4 grid gap-3 sm:grid-cols-4">
+      <div class="rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2">
+        <p class="text-xs text-slate-400">遊玩人數</p>
+        <p class="text-2xl font-semibold text-sky-300"><%= chart.players %></p>
+        <p class="text-xs text-slate-500">不重複 device_id</p>
+      </div>
+      <div class="rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2">
+        <p class="text-xs text-slate-400">總遊玩次數</p>
+        <p class="text-2xl font-semibold text-amber-200"><%= chart.plays %></p>
+        <p class="text-xs text-slate-500">Game Log 筆數</p>
+      </div>
+      <div class="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2">
+        <p class="text-xs text-slate-400">Visual 次數</p>
+        <p class="text-2xl font-semibold text-emerald-300"><%= chart.visualCount %></p>
+        <p class="text-xs text-slate-500">不重複關卡數</p>
+      </div>
+      <div class="rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2">
+        <p class="text-xs text-slate-400">平均遊戲時間</p>
+        <p class="font-mono text-2xl font-semibold text-rose-200"><%= chart.avgLabel %></p>
+        <p class="text-xs text-slate-500">mm:ss.mmm</p>
+      </div>
+    </div>
+    <div class="mt-4 overflow-x-auto">
+      <div style="min-width: <%= Math.max(640, chart.labels.length * 56) %>px; height: 280px;">
+        <canvas id="rangeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
   <div class="overflow-x-auto rounded-2xl border border-white/10">
     <table class="min-w-full text-left text-sm">
       <thead class="bg-white/5 text-slate-300">
@@ -52,7 +89,7 @@
           <td class="px-3 py-2"><%= log.game_visual_no %></td>
           <td class="px-3 py-2 text-emerald-300"><%= log.correct %></td>
           <td class="px-3 py-2 text-rose-300"><%= log.incorrect %></td>
-          <td class="px-3 py-2"><%= log.completion_time %>s</td>
+          <td class="px-3 py-2 font-mono"><%= log.completionLabel %></td>
           <td class="px-3 py-2 text-slate-400"><%= log.createdAtHkt %></td>
         </tr>
         <% }) %>
@@ -60,3 +97,82 @@
     </table>
   </div>
 </section>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script>
+  const rangeStats = <%- chartJson %>;
+  new Chart(document.getElementById('rangeChart'), {
+    data: {
+      labels: rangeStats.labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: '遊玩人數',
+          data: rangeStats.playersByDay,
+          backgroundColor: 'rgba(56, 189, 248, 0.8)',
+          yAxisID: 'y',
+        },
+        {
+          type: 'bar',
+          label: '總遊玩次數',
+          data: rangeStats.playsByDay,
+          backgroundColor: 'rgba(251, 191, 36, 0.8)',
+          yAxisID: 'y',
+        },
+        {
+          type: 'bar',
+          label: 'Visual 次數',
+          data: rangeStats.visualsByDay,
+          backgroundColor: 'rgba(52, 211, 153, 0.8)',
+          yAxisID: 'y',
+        },
+        {
+          type: 'line',
+          label: '平均遊戲時間',
+          data: rangeStats.avgByDay,
+          borderColor: '#fb7185',
+          backgroundColor: '#fb7185',
+          yAxisID: 'y1',
+          tension: 0.25,
+          pointRadius: 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#cbd5e1' } },
+        tooltip: {
+          callbacks: {
+            label(item) {
+              if (item.dataset.yAxisID === 'y1') {
+                return '平均遊戲時間 ' + rangeStats.avgLabels[item.dataIndex];
+              }
+              return item.dataset.label + ': ' + item.parsed.y;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255,255,255,0.06)' },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#94a3b8', precision: 0 },
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          title: { display: true, text: '次數', color: '#94a3b8' },
+        },
+        y1: {
+          beginAtZero: true,
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#fda4af' },
+          title: { display: true, text: '平均秒數', color: '#fda4af' },
+        },
+      },
+    },
+  });
+</script>

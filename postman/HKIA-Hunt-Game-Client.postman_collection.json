@@ -1,0 +1,371 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-hkiahunt001",
+    "name": "HKIA Hunt - Game Client API",
+    "description": "# 尋寶挑戰百萬賞 · Game Client API Flow\n\n給 game client 開發使用的呼叫順序：\n\n1. **POST /login** — 用 `device_id` + `password` 取得 JWT（有效 24 小時）\n2. **GET /game-config** — 取得遊戲設定（需 JWT）\n3. **POST /game-log** — 提交成績，取得 `ref_id`（需 JWT）\n4. **GET /ranking** — 取得排行榜 top 10（需 JWT）\n\n## 重要規則\n- 除 `/login` 外，其餘 API 都要帶 Header：`Authorization: Bearer <token>`\n- `device_id` 由後台建立，client **不可自行註冊**\n- `correct + incorrect` 必須等於 **20**\n- 時間以 **GMT+8** 為準\n  - `gamedate`: `YYYY-MM-DD`\n  - `start_time` / `end_time`: `HH:mm:ss`\n- Ranking 分數 = 活動期間該 device 所有 log 的 `correct` 加總；同分同名次（1,1,2）\n\n## 使用方式\n1. Import 本 Collection + Environment\n2. 在 Environment 填 `baseUrl`、`device_id`、`password`\n3. 依序跑 01 → 04（或用 Collection Runner）\n4. Login 成功後會自動把 `token` 寫入 Environment",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": "DEVICE001"
+    },
+    {
+      "key": "password",
+      "value": "Device@123"
+    },
+    {
+      "key": "ref_id",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01 Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('ok === true and token present', function () {",
+              "  pm.expect(json.ok).to.eql(true);",
+              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (json && json.token) {",
+              "  pm.collectionVariables.set('token', json.token);",
+              "  pm.environment.set('token', json.token);",
+              "}",
+              "",
+              "console.log('device_id:', json.device_id);",
+              "console.log('expires_in:', json.expires_in);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["login"]
+        },
+        "description": "用 device_id + password 登入，取得 JWT。\n\n**Response 例**\n```json\n{\n  \"ok\": true,\n  \"token\": \"eyJhbGciOiJIUzI1NiIs...\",\n  \"expires_in\": \"24h\",\n  \"device_id\": \"DEVICE001\"\n}\n```\n\n之後請求請帶：`Authorization: Bearer <token>`"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"DEVICE001\",\n  \"password\": \"Device@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["login"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"ok\": true,\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example\",\n  \"expires_in\": \"24h\",\n  \"device_id\": \"DEVICE001\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "02 Get Game Config",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('config fields present', function () {",
+              "  pm.expect(json.ok).to.eql(true);",
+              "  pm.expect(json.config).to.include.keys('max_timer', 'answer_timer', 'circle_radius');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/game-config",
+          "host": ["{{baseUrl}}"],
+          "path": ["game-config"]
+        },
+        "description": "取得全域遊戲設定（需 JWT）。\n\n| 欄位 | 單位 | 說明 |\n|------|------|------|\n| max_timer | 秒 | 遊戲最大時間 |\n| answer_timer | 秒 | 答題時間 |\n| circle_radius | float | 圓圈半徑 |\n\n**Response 例**\n```json\n{\n  \"ok\": true,\n  \"config\": {\n    \"max_timer\": 120,\n    \"answer_timer\": 30,\n    \"circle_radius\": 1.5\n  }\n}\n```"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/game-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-config"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"ok\": true,\n  \"config\": {\n    \"max_timer\": 120,\n    \"answer_timer\": 30,\n    \"circle_radius\": 1.5\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "03 Submit Game Log",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// 預填今日 gamedate（GMT+8）方便本機測試",
+              "const now = new Date();",
+              "const hkt = new Date(now.getTime() + 8 * 60 * 60 * 1000);",
+              "const y = hkt.getUTCFullYear();",
+              "const m = String(hkt.getUTCMonth() + 1).padStart(2, '0');",
+              "const d = String(hkt.getUTCDate()).padStart(2, '0');",
+              "pm.collectionVariables.set('gamedate_today', `${y}-${m}-${d}`);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('ref_id returned', function () {",
+              "  pm.expect(json.ok).to.eql(true);",
+              "  pm.expect(json.ref_id).to.match(/^\\d{8}[A-Z0-9]{4}$/);",
+              "});",
+              "",
+              "if (json && json.ref_id) {",
+              "  pm.collectionVariables.set('ref_id', json.ref_id);",
+              "  pm.environment.set('ref_id', json.ref_id);",
+              "}",
+              "",
+              "console.log('ref_id:', json.ref_id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"gamedate\": \"{{gamedate_today}}\",\n  \"start_time\": \"18:00:00\",\n  \"end_time\": \"18:05:30\",\n  \"game_visual_no\": 1,\n  \"correct\": 15,\n  \"incorrect\": 5,\n  \"completion_time\": 330\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/game-log",
+          "host": ["{{baseUrl}}"],
+          "path": ["game-log"]
+        },
+        "description": "提交一局成績（需 JWT）。`device_id` 以 JWT 為準，不必（也不應依賴）body 傳入。\n\n## Request 欄位\n| 欄位 | 型別 | 說明 |\n|------|------|------|\n| gamedate | string | `YYYY-MM-DD`（GMT+8） |\n| start_time | string | `HH:mm:ss` |\n| end_time | string | `HH:mm:ss` |\n| game_visual_no | number | 關卡編號 |\n| correct | int 0–20 | 答對題數 |\n| incorrect | int 0–20 | 答錯題數 |\n| completion_time | number | 完成秒數 |\n\n**硬性規則**：`correct + incorrect === 20`\n\n**Response 例**\n```json\n{\n  \"ok\": true,\n  \"ref_id\": \"20260910Q880\"\n}\n```\n`ref_id` = `yyyymmdd`(GMT+8) + 4 位 A-Z0-9"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gamedate\": \"2026-09-10\",\n  \"start_time\": \"18:00:00\",\n  \"end_time\": \"18:05:30\",\n  \"game_visual_no\": 1,\n  \"correct\": 15,\n  \"incorrect\": 5,\n  \"completion_time\": 330\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/game-log",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-log"]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"ok\": true,\n  \"ref_id\": \"20260910Q880\"\n}"
+        },
+        {
+          "name": "Validation Error (sum != 20)",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gamedate\": \"2026-09-10\",\n  \"start_time\": \"18:00:00\",\n  \"end_time\": \"18:05:30\",\n  \"game_visual_no\": 1,\n  \"correct\": 10,\n  \"incorrect\": 5,\n  \"completion_time\": 330\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/game-log",
+              "host": ["{{baseUrl}}"],
+              "path": ["game-log"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"ok\": false,\n  \"error\": \"correct + incorrect 必須等於 20\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "04 Get Ranking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('ranking is array (max 10)', function () {",
+              "  pm.expect(json.ok).to.eql(true);",
+              "  pm.expect(json.ranking).to.be.an('array');",
+              "  pm.expect(json.ranking.length).to.be.at.most(10);",
+              "});",
+              "",
+              "if (json.ranking && json.ranking.length) {",
+              "  console.log('Top:', json.ranking[0]);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/ranking",
+          "host": ["{{baseUrl}}"],
+          "path": ["ranking"]
+        },
+        "description": "取得活動期間排行榜（需 JWT）。\n\n- 分數 = 各 device 所有 game log 的 **correct 加總**\n- 回傳最多 **10** 名\n- 同分同名次（密集名次：1,1,2）\n\n**Response 例**\n```json\n{\n  \"ok\": true,\n  \"ranking\": [\n    { \"rank\": 1, \"device_id\": \"DEVICE001\", \"score\": 33, \"plays\": 2 },\n    { \"rank\": 1, \"device_id\": \"DEVICE002\", \"score\": 33, \"plays\": 2 },\n    { \"rank\": 2, \"device_id\": \"DEVICE003\", \"score\": 20, \"plays\": 1 }\n  ]\n}\n```"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ranking",
+              "host": ["{{baseUrl}}"],
+              "path": ["ranking"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"ok\": true,\n  \"ranking\": [\n    {\n      \"rank\": 1,\n      \"device_id\": \"DEVICE001\",\n      \"score\": 33,\n      \"plays\": 2\n    },\n    {\n      \"rank\": 2,\n      \"device_id\": \"DEVICE003\",\n      \"score\": 20,\n      \"plays\": 1\n    }\n  ]\n}"
+        }
+      ]
+    }
+  ]
+}
