@@ -18,6 +18,9 @@ async function main() {
   await connectDb(mongoUri);
   await ensureBootstrap();
 
+  const { startDevicePasswordResetScheduler } = require('./jobs/devicePasswordReset');
+  startDevicePasswordResetScheduler();
+
   const app = createApp();
   app.listen(port, () => {
     console.log(`尋寶挑戰百萬賞 listening on http://localhost:${port}`);

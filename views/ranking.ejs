@@ -1,0 +1,34 @@
+<section class="space-y-6">
+  <div>
+    <h2 class="font-serif text-3xl text-amber-200">排行榜</h2>
+    <p class="mt-1 text-sm text-slate-400">先按 correct 總分（高→低），同分再按最快完成時間（快→慢）</p>
+  </div>
+
+  <div class="overflow-x-auto rounded-2xl border border-white/10">
+    <table class="min-w-full text-left text-sm">
+      <thead class="bg-white/5 text-slate-300">
+        <tr>
+          <th class="px-3 py-2">名次</th>
+          <th class="px-3 py-2">device_id</th>
+          <th class="px-3 py-2">correct</th>
+          <th class="px-3 py-2">最快完成時間</th>
+          <th class="px-3 py-2">遊玩次數</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!ranking.length) { %>
+        <tr><td class="px-3 py-6 text-slate-500" colspan="5">尚無紀錄</td></tr>
+        <% } %>
+        <% ranking.forEach(function (row) { %>
+        <tr class="border-t border-white/5 hover:bg-white/[0.03]">
+          <td class="px-3 py-2 font-semibold text-amber-200"><%= row.rank %></td>
+          <td class="px-3 py-2 font-mono"><%= row.device_id %></td>
+          <td class="px-3 py-2 text-emerald-300"><%= row.correct %></td>
+          <td class="px-3 py-2 font-mono"><%= row.completionLabel %></td>
+          <td class="px-3 py-2 text-slate-400"><%= row.plays %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>

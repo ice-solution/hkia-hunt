@@ -20,7 +20,7 @@
     },
     {
       "key": "password",
-      "value": "Device@123"
+      "value": "123456"
     },
     {
       "key": "ref_id",
@@ -102,7 +102,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": \"DEVICE001\",\n  \"password\": \"Device@123\"\n}"
+              "raw": "{\n  \"device_id\": \"DEVICE001\",\n  \"password\": \"123456\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/login",

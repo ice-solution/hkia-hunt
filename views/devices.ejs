@@ -1,7 +1,19 @@
 <section class="space-y-6">
-  <div>
-    <h2 class="font-serif text-3xl text-amber-200">Device 管理</h2>
-    <p class="mt-1 text-sm text-slate-400">僅管理員可建立 / 重設密碼（<%= passwordHint %>）</p>
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h2 class="font-serif text-3xl text-amber-200">Device 管理</h2>
+      <p class="mt-1 text-sm text-slate-400">僅管理員可建立 / 重設密碼（<%= passwordHint %>）</p>
+      <p class="mt-1 text-xs text-slate-500">自動排程：由 2026-09-24 起每隔一天 18:00（GMT+8）重設全部密碼並寄到 target_email</p>
+    </div>
+    <form
+      method="post"
+      action="/dashboard/devices/reset-and-email"
+      onsubmit="return confirm('將重設「全部」Device 密碼（含停用），並寄到 target_email。device_id 不會改變。確定？');"
+    >
+      <button class="rounded-lg border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-amber-100 hover:bg-amber-500/25" type="submit">
+        重設全部密碼並寄 Email
+      </button>
+    </form>
   </div>
 
   <% if (error) { %>
@@ -18,7 +30,7 @@
     </label>
     <label class="text-sm sm:col-span-1">
       <span class="text-slate-400">password</span>
-      <input class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2" type="password" name="password" required />
+      <input class="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2" type="password" name="password" inputmode="numeric" pattern="\d{6}" maxlength="6" placeholder="6 位數字" required />
     </label>
     <label class="text-sm sm:col-span-1">
       <span class="text-slate-400">備註</span>
@@ -50,7 +62,7 @@
           <td class="px-3 py-2 text-slate-400"><%= d.createdAtHkt %></td>
           <td class="px-3 py-2">
             <form class="flex gap-2" method="post" action="/dashboard/devices/<%= d._id %>/password">
-              <input class="w-40 rounded border border-white/10 bg-slate-900 px-2 py-1" type="password" name="password" placeholder="新密碼" required />
+              <input class="w-40 rounded border border-white/10 bg-slate-900 px-2 py-1" type="password" name="password" inputmode="numeric" pattern="\d{6}" maxlength="6" placeholder="6 位數字" required />
               <button class="rounded bg-white/10 px-2 py-1 hover:bg-white/20" type="submit">更新</button>
             </form>
           </td>

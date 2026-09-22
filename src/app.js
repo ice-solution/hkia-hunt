@@ -12,6 +12,7 @@ const rankingRoutes = require('./routes/api/ranking');
 const dashboardHome = require('./routes/dashboard/home');
 const dashboardAuth = require('./routes/dashboard/auth');
 const dashboardLogs = require('./routes/dashboard/logs');
+const dashboardRanking = require('./routes/dashboard/ranking');
 const dashboardDevices = require('./routes/dashboard/devices');
 const dashboardConfig = require('./routes/dashboard/config');
 
@@ -48,6 +49,7 @@ function createApp() {
   app.use('/dashboard', dashboardAuth);
   app.use('/dashboard', dashboardHome);
   app.use('/dashboard/logs', dashboardLogs);
+  app.use('/dashboard/ranking', dashboardRanking);
   app.use('/dashboard/devices', dashboardDevices);
   app.use('/dashboard/config', dashboardConfig);
 

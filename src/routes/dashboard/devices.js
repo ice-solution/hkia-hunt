@@ -1,52 +1,63 @@
 const express = require('express');
 const Device = require('../../models/Device');
-const { isValidPassword, PASSWORD_HINT } = require('../../utils/password');
+const { isValidDevicePassword, DEVICE_PASSWORD_HINT } = require('../../utils/password');
 const { requireStaffSession, requireAdmin } = require('../../middleware/auth');
 const { formatHktDateTime } = require('../../utils/timezone');
+const { resetAllDevicePasswordsAndEmail } = require('../../services/devicePasswordReset');
 
 const router = express.Router();
 
 router.use(requireStaffSession, requireAdmin);
 
-router.get('/', async (req, res) => {
+async function renderDevices(res, { error = null, success = null, status = 200 } = {}) {
   const devices = await Device.find().sort({ device_id: 1 }).lean();
-  return res.render('devices', {
+  return res.status(status).render('devices', {
     title: 'Device 管理',
     devices: devices.map((d) => ({
       ...d,
       createdAtHkt: formatHktDateTime(d.createdAt),
     })),
-    passwordHint: PASSWORD_HINT,
-    error: null,
-    success: null,
+    passwordHint: DEVICE_PASSWORD_HINT,
+    error,
+    success,
   });
+}
+
+router.get('/', async (req, res) => {
+  if (req.query.success === 'password') {
+    return renderDevices(res, { success: '密碼已更新' });
+  }
+  if (req.query.success === 'toggle') {
+    return renderDevices(res, { success: '狀態已更新' });
+  }
+  if (req.query.success === 'emailed') {
+    return renderDevices(res, { success: '已重設全部 Device 密碼並寄出 email' });
+  }
+  if (req.query.error === 'password') {
+    return renderDevices(res, { error: DEVICE_PASSWORD_HINT, status: 400 });
+  }
+  if (req.query.error === 'notfound') {
+    return renderDevices(res, { error: '找不到 Device', status: 400 });
+  }
+  if (req.query.error === 'server') {
+    return renderDevices(res, { error: '操作失敗', status: 400 });
+  }
+  return renderDevices(res);
 });
 
 router.post('/', async (req, res) => {
-  const devices = await Device.find().sort({ device_id: 1 }).lean();
-  const mapped = devices.map((d) => ({
-    ...d,
-    createdAtHkt: formatHktDateTime(d.createdAt),
-  }));
-
   try {
     const { device_id, password, label } = req.body || {};
     if (!device_id || !password) {
-      return res.status(400).render('devices', {
-        title: 'Device 管理',
-        devices: mapped,
-        passwordHint: PASSWORD_HINT,
+      return renderDevices(res, {
         error: '請填寫 device_id 與 password',
-        success: null,
+        status: 400,
       });
     }
-    if (!isValidPassword(password)) {
-      return res.status(400).render('devices', {
-        title: 'Device 管理',
-        devices: mapped,
-        passwordHint: PASSWORD_HINT,
-        error: PASSWORD_HINT,
-        success: null,
+    if (!isValidDevicePassword(password)) {
+      return renderDevices(res, {
+        error: DEVICE_PASSWORD_HINT,
+        status: 400,
       });
     }
 
@@ -57,34 +68,27 @@ router.post('/', async (req, res) => {
       active: true,
     });
 
-    const refreshed = await Device.find().sort({ device_id: 1 }).lean();
-    return res.render('devices', {
-      title: 'Device 管理',
-      devices: refreshed.map((d) => ({
-        ...d,
-        createdAtHkt: formatHktDateTime(d.createdAt),
-      })),
-      passwordHint: PASSWORD_HINT,
-      error: null,
-      success: 'Device 已建立',
-    });
+    return renderDevices(res, { success: 'Device 已建立' });
   } catch (err) {
     if (err && err.code === 11000) {
-      return res.status(400).render('devices', {
-        title: 'Device 管理',
-        devices: mapped,
-        passwordHint: PASSWORD_HINT,
-        error: 'device_id 已存在',
-        success: null,
-      });
+      return renderDevices(res, { error: 'device_id 已存在', status: 400 });
     }
     console.error('create device', err);
-    return res.status(500).render('devices', {
-      title: 'Device 管理',
-      devices: mapped,
-      passwordHint: PASSWORD_HINT,
-      error: '建立失敗',
-      success: null,
+    return renderDevices(res, { error: '建立失敗', status: 500 });
+  }
+});
+
+router.post('/reset-and-email', async (req, res) => {
+  try {
+    const result = await resetAllDevicePasswordsAndEmail('manual');
+    return renderDevices(res, {
+      success: `已重設 ${result.count} 個 Device 密碼，並寄到 target_email（device_id 未改動）`,
+    });
+  } catch (err) {
+    console.error('reset-and-email', err);
+    return renderDevices(res, {
+      error: err.message || '重設並寄信失敗',
+      status: 500,
     });
   }
 });
@@ -92,7 +96,7 @@ router.post('/', async (req, res) => {
 router.post('/:id/password', async (req, res) => {
   try {
     const { password } = req.body || {};
-    if (!isValidPassword(password)) {
+    if (!isValidDevicePassword(password)) {
       return res.status(400).redirect('/dashboard/devices?error=password');
     }
     const device = await Device.findById(req.params.id);
