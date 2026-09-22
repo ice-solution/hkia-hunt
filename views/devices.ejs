@@ -3,7 +3,9 @@
     <div>
       <h2 class="font-serif text-3xl text-amber-200">Device 管理</h2>
       <p class="mt-1 text-sm text-slate-400">僅管理員可建立 / 重設密碼（<%= passwordHint %>）</p>
-      <p class="mt-1 text-xs text-slate-500">自動排程：由 2026-09-24 起每隔一天 18:00（GMT+8）重設全部密碼並寄到 target_email</p>
+      <p class="mt-1 text-xs text-slate-500">
+        自動寄信：.env <code class="text-slate-300">send_email=on</code> 時，每天 18:00（GMT+8）檢查距上次重設（含手動）是否 ≥48 小時，是則重設並寄到 target_email
+      </p>
     </div>
     <form
       method="post"

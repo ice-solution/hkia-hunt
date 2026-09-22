@@ -7,9 +7,10 @@ const jobStateSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    lastScheduledResetDate: {
-      type: String,
-      default: '',
+    /** Last time passwords were reset & emailed (manual or scheduled). */
+    lastResetAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }

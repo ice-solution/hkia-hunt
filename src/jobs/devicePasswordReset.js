@@ -1,30 +1,28 @@
 const cron = require('node-cron');
-const JobState = require('../models/JobState');
 const {
   resetAllDevicePasswordsAndEmail,
-  isScheduledResetDay,
+  isEmailSendEnabled,
+  isOver48HoursSinceLastReset,
+  getJobState,
 } = require('../services/devicePasswordReset');
-const { formatHktDate } = require('../utils/timezone');
+const { formatHktDateTime } = require('../utils/timezone');
 
-const JOB_KEY = 'device_password_email';
 let running = false;
 
-async function getJobState() {
-  let state = await JobState.findOne({ key: JOB_KEY });
-  if (!state) {
-    state = await JobState.create({ key: JOB_KEY, lastScheduledResetDate: '' });
-  }
-  return state;
-}
-
 async function runScheduledResetIfDue() {
-  const today = formatHktDate();
-  if (!isScheduledResetDay(today)) {
+  if (!isEmailSendEnabled()) {
+    console.log('[device-password-reset] skipped: send_email is off');
     return;
   }
 
-  const state = await getJobState();
-  if (state.lastScheduledResetDate === today) {
+  const overdue = await isOver48HoursSinceLastReset();
+  if (!overdue) {
+    const state = await getJobState();
+    console.log(
+      `[device-password-reset] skipped: last reset at ${
+        state.lastResetAt ? formatHktDateTime(state.lastResetAt) : 'never'
+      } HKT (< 48h)`
+    );
     return;
   }
 
@@ -33,12 +31,10 @@ async function runScheduledResetIfDue() {
   }
   running = true;
   try {
-    console.log(`[device-password-reset] scheduled run for ${today} (HKT)`);
+    console.log('[device-password-reset] scheduled run (≥48h since last reset)');
     const result = await resetAllDevicePasswordsAndEmail('scheduled');
-    state.lastScheduledResetDate = today;
-    await state.save();
     console.log(
-      `[device-password-reset] emailed ${result.count} device password(s) to target_email`
+      `[device-password-reset] emailed ${result.count} device password(s); lastResetAt=${formatHktDateTime(result.lastResetAt)} HKT`
     );
   } catch (err) {
     console.error('[device-password-reset] scheduled run failed:', err.message || err);
@@ -48,7 +44,7 @@ async function runScheduledResetIfDue() {
 }
 
 function startDevicePasswordResetScheduler() {
-  // Every day 18:00 Asia/Hong_Kong; logic decides even days from 2026-09-24
+  // Every day 18:00 Asia/Hong_Kong → if send_email=on and ≥48h since last reset (manual counts)
   cron.schedule(
     '0 18 * * *',
     () => {
@@ -58,8 +54,10 @@ function startDevicePasswordResetScheduler() {
     },
     { timezone: 'Asia/Hong_Kong' }
   );
+
+  const flag = isEmailSendEnabled() ? 'on' : 'off';
   console.log(
-    '[device-password-reset] scheduler ready: every 2 days from 2026-09-24 at 18:00 HKT'
+    `[device-password-reset] scheduler ready: daily 18:00 HKT, send if ≥48h since last reset (send_email=${flag})`
   );
 }
 

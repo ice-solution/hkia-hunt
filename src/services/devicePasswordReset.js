@@ -1,7 +1,11 @@
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const Device = require('../models/Device');
+const JobState = require('../models/JobState');
 const { formatHktDate, formatHktDateTime } = require('../utils/timezone');
+
+const JOB_KEY = 'device_password_email';
+const INTERVAL_MS = 48 * 60 * 60 * 1000;
 
 function randomDevicePassword() {
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
@@ -22,6 +26,38 @@ function getMailConfig() {
   const pass = process.env.gmail_pw || process.env.GMAIL_PW;
   const to = process.env.target_email || process.env.TARGET_EMAIL;
   return { user, pass, to };
+}
+
+/** .env send_email=on|off (also true/false/1/0) */
+function isEmailSendEnabled() {
+  const raw = String(process.env.send_email || process.env.SEND_EMAIL || 'off')
+    .trim()
+    .toLowerCase();
+  return raw === 'on' || raw === 'true' || raw === '1' || raw === 'yes';
+}
+
+async function getJobState() {
+  let state = await JobState.findOne({ key: JOB_KEY });
+  if (!state) {
+    state = await JobState.create({ key: JOB_KEY, lastResetAt: null });
+  }
+  return state;
+}
+
+async function markLastResetAt(when = new Date()) {
+  const state = await getJobState();
+  state.lastResetAt = when;
+  await state.save();
+  return state.lastResetAt;
+}
+
+/** true if never sent, or last send was >= 48 hours ago */
+async function isOver48HoursSinceLastReset(now = new Date()) {
+  const state = await getJobState();
+  if (!state.lastResetAt) {
+    return true;
+  }
+  return now.getTime() - new Date(state.lastResetAt).getTime() >= INTERVAL_MS;
 }
 
 async function sendPasswordEmail(pairs, reason) {
@@ -49,6 +85,7 @@ async function sendPasswordEmail(pairs, reason) {
 
 /**
  * Reset ALL device passwords (device_id unchanged) and email plaintext passwords.
+ * Updates lastResetAt so the 48h clock restarts (manual and scheduled).
  * @param {'manual'|'scheduled'} reason
  */
 async function resetAllDevicePasswordsAndEmail(reason = 'manual') {
@@ -66,30 +103,24 @@ async function resetAllDevicePasswordsAndEmail(reason = 'manual') {
   }
 
   await sendPasswordEmail(pairs, reason === 'scheduled' ? '自動排程' : '手動重設');
+  const lastResetAt = await markLastResetAt(new Date());
 
   return {
     count: pairs.length,
     deviceIds: pairs.map((p) => p.device_id),
     date: formatHktDate(),
+    lastResetAt,
   };
 }
 
-/**
- * Schedule days: from 2026-09-24 inclusive, every 2 calendar days (24,26,28…).
- */
-function isScheduledResetDay(dateStr) {
-  const start = '2026-09-24';
-  if (!dateStr || dateStr < start) return false;
-  const startMs = new Date(`${start}T12:00:00+08:00`).getTime();
-  const dayMs = new Date(`${dateStr}T12:00:00+08:00`).getTime();
-  const diffDays = Math.round((dayMs - startMs) / (24 * 60 * 60 * 1000));
-  return diffDays >= 0 && diffDays % 2 === 0;
-}
-
 module.exports = {
+  JOB_KEY,
+  INTERVAL_MS,
   randomDevicePassword,
   buildPasswordEmailBody,
   resetAllDevicePasswordsAndEmail,
-  isScheduledResetDay,
+  isEmailSendEnabled,
+  isOver48HoursSinceLastReset,
+  getJobState,
   getMailConfig,
 };
